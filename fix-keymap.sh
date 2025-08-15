@@ -27,9 +27,43 @@ sed -i '' 's/^endif {$/#endif/' "$KEYMAP_FILE" 2>/dev/null || sed -i 's/^endif {
 
 # Remove stray forward slashes
 sed -i '' 's/^    \/$//g' "$KEYMAP_FILE" 2>/dev/null || sed -i 's/^    \/$//g' "$KEYMAP_FILE"
+sed -i '' 's/^\/$//' "$KEYMAP_FILE" 2>/dev/null || sed -i 's/^\/$//' "$KEYMAP_FILE"
 
 # Fix broken device tree root nodes
 sed -i '' 's/endif {$/\/ {/' "$KEYMAP_FILE" 2>/dev/null || sed -i 's/endif {$/\/ {/' "$KEYMAP_FILE"
+
+# Comprehensive fix for the specific pattern from keymap editor
+echo "🔧 Applying comprehensive pattern fixes..."
+
+# Use awk to fix the complex pattern: #ifndef -> #define -> # -> endif { -> / -> content
+awk '
+BEGIN { in_fix_block = 0 }
+/^#ifndef LAYER_Lower/ { 
+    print; 
+    in_fix_block = 1; 
+    next 
+}
+in_fix_block && /^#define LAYER_Lower/ { 
+    print; 
+    next 
+}
+in_fix_block && /^#$/ { 
+    # Skip standalone #
+    next 
+}
+in_fix_block && /^endif \{/ { 
+    print "#endif"
+    print ""
+    print "/ {"
+    in_fix_block = 0
+    next 
+}
+in_fix_block && /^    \/$/ { 
+    # Skip stray /
+    next 
+}
+{ print }
+' "$KEYMAP_FILE" > "$KEYMAP_FILE.tmp" && mv "$KEYMAP_FILE.tmp" "$KEYMAP_FILE"
 
 # Ensure proper #ifndef/#endif pairing
 if grep -q "#ifndef LAYER_Lower" "$KEYMAP_FILE"; then

@@ -23,27 +23,82 @@ jobs:
           skipPush: true
       - name: Fix keymap syntax issues from editor
         run: |
-          echo "Checking and fixing keymap syntax issues..."
+          echo "🔧 Checking and fixing keymap syntax issues..."
+          
+          # Create backup
+          cp config/glove80.keymap config/glove80.keymap.backup
           
           # Fix common keymap editor syntax issues
+          echo "Fixing standalone # characters..."
           sed -i 's/^#$//' config/glove80.keymap || true
+          
+          echo "Fixing malformed endif statements..."
           sed -i 's/^endif {$/#endif/' config/glove80.keymap || true
+          
+          echo "Removing stray forward slashes..."
           sed -i 's/^    \/$//g' config/glove80.keymap || true
+          sed -i 's/^\/$//' config/glove80.keymap || true
           
-          # Ensure proper #ifndef/#endif pairing
-          if grep -q "#ifndef LAYER_Lower" config/glove80.keymap; then
-            if ! grep -q "#endif" config/glove80.keymap; then
-              sed -i '/^#ifndef LAYER_Lower/,/^#define LAYER_Lower 0/ a\#endif' config/glove80.keymap
-            fi
-          fi
-          
-          # Fix broken device tree root nodes
+          echo "Fixing broken device tree root nodes..."
           sed -i 's/endif {$/\/ {/' config/glove80.keymap || true
           
-          echo "Keymap syntax fixes applied"
+          # More comprehensive fix for the specific pattern we're seeing
+          echo "Applying comprehensive syntax fixes..."
+          
+          # Fix the pattern: #ifndef -> #define -> # -> endif { -> / -> content
+          # Replace it with: #ifndef -> #define -> #endif -> / { -> content
+          awk '
+          BEGIN { in_fix_block = 0; fix_lines = ""; content_lines = "" }
+          /^#ifndef LAYER_Lower/ { 
+            print; 
+            in_fix_block = 1; 
+            next 
+          }
+          in_fix_block && /^#define LAYER_Lower/ { 
+            print; 
+            next 
+          }
+          in_fix_block && /^#$/ { 
+            # Skip standalone #
+            next 
+          }
+          in_fix_block && /^endif \{/ { 
+            print "#endif"
+            print ""
+            print "/ {"
+            in_fix_block = 0
+            next 
+          }
+          in_fix_block && /^    \/$/ { 
+            # Skip stray /
+            next 
+          }
+          { print }
+          ' config/glove80.keymap > config/glove80.keymap.tmp && mv config/glove80.keymap.tmp config/glove80.keymap
+          
+          echo "✅ Keymap syntax fixes applied"
+          
+          # Show what changed
+          echo "📋 Changes made:"
+          diff -u config/glove80.keymap.backup config/glove80.keymap || true
           
           # Validate the fixed syntax
-          cpp -E config/glove80.keymap > /dev/null 2>&1 && echo "✓ Keymap syntax is now valid" || echo "⚠ Warning: Some syntax issues may remain"
+          if cpp -E config/glove80.keymap > /dev/null 2>&1; then
+            echo "✅ Keymap syntax is now valid!"
+          else
+            echo "⚠️ Warning: Some syntax issues may remain"
+            echo "Attempting additional fixes..."
+            
+            # Additional fallback fixes
+            sed -i '/^$/N;/^\n$/d' config/glove80.keymap || true
+            
+            # Final validation
+            if cpp -E config/glove80.keymap > /dev/null 2>&1; then
+              echo "✅ Syntax fixed with additional cleanup!"
+            else
+              echo "❌ Manual intervention may be required"
+            fi
+          fi
       - name: Build Glove80 combined firmware
         run: nix-build config -o combined
       - name: Copy result out of nix store
