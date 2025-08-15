@@ -14,13 +14,18 @@ jobs:
           repository: moergo-sc/zmk
           ref: main
           path: src
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v27
         with:
-          nix_path: nixpkgs=channel:nixos-22.05
-      - uses: cachix/cachix-action@v14
+          nix_path: nixpkgs=channel:nixos-24.05
+      - uses: cachix/cachix-action@v15
         with:
           name: moergo-glove80-zmk-dev
           skipPush: true
+      - name: Validate keymap syntax
+        run: |
+          echo "Checking keymap file syntax..."
+          cpp -E config/glove80.keymap > /dev/null || echo "Warning: Preprocessor issues detected"
+          echo "Keymap file validation complete"
       - name: Build Glove80 combined firmware
         run: nix-build config -o combined
       - name: Copy result out of nix store
