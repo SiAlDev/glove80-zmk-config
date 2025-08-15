@@ -21,7 +21,9 @@
 /* Helper Macros, based on https://github.com/urob/zmk-helpers/ */
 
 #pragma once
+@@chrisandreae@chrisandreae
 
+@@
 #define ZMK_HELPER_STRINGIFY(x) #x
 
 // Preprocessor mechanism to overload macros, cf. https://stackoverflow.com/a/27051616/6114651
@@ -100,21 +102,21 @@
             label = "MACRO_LESS";
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&kp LT>;
+            bindings = <&kp LS(COMMA)>;
         };
         
         macro_greater: macro_greater {
             label = "MACRO_GREATER";
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&kp GT>;
+            bindings = <&kp LS(DOT)>;
         };
         
         macro_pipe: macro_pipe {
             label = "MACRO_PIPE";
             compatible = "zmk,behavior-macro";
             #binding-cells = <0>;
-            bindings = <&kp PIPE>;
+            bindings = <&kp LS(BSLH)>;
         };
     };
 };
