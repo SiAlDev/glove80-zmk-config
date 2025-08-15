@@ -21,11 +21,29 @@ jobs:
         with:
           name: moergo-glove80-zmk-dev
           skipPush: true
-      - name: Validate keymap syntax
+      - name: Fix keymap syntax issues from editor
         run: |
-          echo "Checking keymap file syntax..."
-          cpp -E config/glove80.keymap > /dev/null || echo "Warning: Preprocessor issues detected"
-          echo "Keymap file validation complete"
+          echo "Checking and fixing keymap syntax issues..."
+          
+          # Fix common keymap editor syntax issues
+          sed -i 's/^#$//' config/glove80.keymap || true
+          sed -i 's/^endif {$/#endif/' config/glove80.keymap || true
+          sed -i 's/^    \/$//g' config/glove80.keymap || true
+          
+          # Ensure proper #ifndef/#endif pairing
+          if grep -q "#ifndef LAYER_Lower" config/glove80.keymap; then
+            if ! grep -q "#endif" config/glove80.keymap; then
+              sed -i '/^#ifndef LAYER_Lower/,/^#define LAYER_Lower 0/ a\#endif' config/glove80.keymap
+            fi
+          fi
+          
+          # Fix broken device tree root nodes
+          sed -i 's/endif {$/\/ {/' config/glove80.keymap || true
+          
+          echo "Keymap syntax fixes applied"
+          
+          # Validate the fixed syntax
+          cpp -E config/glove80.keymap > /dev/null 2>&1 && echo "✓ Keymap syntax is now valid" || echo "⚠ Warning: Some syntax issues may remain"
       - name: Build Glove80 combined firmware
         run: nix-build config -o combined
       - name: Copy result out of nix store

@@ -25,6 +25,29 @@ If you are looking to dig deeper into ZMK and develop new functionality, it is r
 3. Edit the keymap file(s) to suit your needs
 4. Commit and push your changes to your personal repo. Upon pushing it, GitHub Actions will start building a new version of your firmware with the updated keymap.
 
+## Using Third-Party Keymap Editors
+
+If you're using the [keymap editor webapp](https://nickcoutsos.github.io/keymap-editor/), you may encounter syntax issues in the generated keymap file. This repository includes automatic fixes in the GitHub Actions workflow, but you can also run the fix script locally:
+
+### Automatic Fix (Recommended)
+The GitHub Actions workflow automatically detects and fixes common syntax issues from keymap editors. Just commit and push your changes - no additional steps needed!
+
+### Manual Fix (Optional)
+If you want to fix syntax issues locally before committing:
+
+```bash
+./fix-keymap.sh
+```
+
+This script will:
+- ✅ Fix unterminated preprocessor directives (`#ifndef`/`#endif`)
+- ✅ Correct malformed device tree syntax
+- ✅ Remove stray characters and incomplete lines  
+- ✅ Create a backup of your original file
+- ✅ Validate the fixed syntax
+
+**Note**: Always run this script after saving changes from third-party keymap editors to ensure your build succeeds.
+
 ## Firmware Files
 To locate your firmware files and reflash your Glove80...
 1. log into GitHub and navigate to your personal config repository you just uploaded your keymap changes to.
